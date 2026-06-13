@@ -9,7 +9,8 @@ use Inertia\Inertia;
 Route::get('/clear-cache', function () {
     Artisan::call('config:clear');
     Artisan::call('cache:clear');
-    return 'Config and Cache cleared successfully!';
+    Artisan::call('optimize');
+    return 'Config, Cache cleared and Optimized successfully!';
 })->name('clear-cache');
 
 Route::get('/run-migrate', function () {
