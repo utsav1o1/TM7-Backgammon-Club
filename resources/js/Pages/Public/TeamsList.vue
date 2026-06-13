@@ -8,7 +8,7 @@ defineProps({
 </script>
 
 <template>
-  <Head title="Registered Teams | TM7 Club" />
+  <Head title="Registered Teams | Galaxygammon Club" />
 
   <PublicLayout>
     <div class="max-w-7xl mx-auto px-6 py-12 lg:py-24">

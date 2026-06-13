@@ -93,7 +93,7 @@ const tournamentData = computed(() => {
 </script>
 
 <template>
-  <Head title="Team Bracket | TM7 Club" />
+  <Head title="Team Bracket | Galaxygammon Club" />
 
   <PublicLayout>
     <div class="max-w-7xl mx-auto px-6 py-12 lg:py-24 overflow-x-hidden">

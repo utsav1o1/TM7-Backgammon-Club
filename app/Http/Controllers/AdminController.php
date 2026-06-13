@@ -17,12 +17,12 @@ class AdminController extends Controller
     public function index()
     {
         return Inertia::render('Dashboard', [
-            'total_teams' => Team::count(),
-            'total_solo' => IndividualEntry::count(),
-            'total_players' => Player::count(),
-            'total_matches' => TournamentMatch::count(),
-            'open_conflicts' => TournamentMatch::where('status', 'conflict')->count(),
-            'admin_cc_email' => TournamentSetting::get('admin_cc_email', 'utsavkarki244@gmail.com'),
+            'total_teams'     => Team::count(),
+            'total_solo'      => Player::count(),  // Solo players use the Player model
+            'total_players'   => Player::count(),
+            'total_matches'   => TournamentMatch::count(),
+            'open_conflicts'  => TournamentMatch::where('status', 'conflict')->count(),
+            'admin_cc_email'  => TournamentSetting::get('admin_cc_email', 'utsavkarki244@gmail.com'),
         ]);
     }
 
@@ -36,7 +36,7 @@ class AdminController extends Controller
     public function solo()
     {
         return Inertia::render('Admin/Participants/Solo', [
-            'individual_entries' => IndividualEntry::latest()->get(),
+            'players' => Player::latest()->get(),
         ]);
     }
 
@@ -67,12 +67,12 @@ class AdminController extends Controller
     public function individualBracket()
     {
         $matches = TournamentMatch::where('tournament_type', 'individual')->get();
-        $solo = IndividualEntry::all()->keyBy('id');
+        $solo = Player::all()->keyBy('id');
 
         foreach ($matches as $match) {
-            $match->p1_name = $solo->get($match->participant1_id)->player_name ?? 'BYE';
-            $match->p2_name = $solo->get($match->participant2_id)->player_name ?? 'BYE';
-            $match->winner_name = $solo->get($match->winner_id)->player_name ?? null;
+            $match->p1_name = $solo->get($match->participant1_id)->nickname ?? 'BYE';
+            $match->p2_name = $solo->get($match->participant2_id)->nickname ?? 'BYE';
+            $match->winner_name = $solo->get($match->winner_id)->nickname ?? null;
         }
 
         return Inertia::render('Admin/Stats/IndividualBracket', [
@@ -142,16 +142,7 @@ class AdminController extends Controller
             ]);
         }
 
-        // Seed 8 Solo Entries
-        for ($i = 0; $i < 8; $i++) {
-            IndividualEntry::create([
-                'player_name' => $faker->unique()->userName,
-                'email' => $faker->unique()->safeEmail,
-                'timezone' => $faker->timezone,
-            ]);
-        }
-
-        return back()->with('success', 'Successfully seeded 8 Teams, 8 Solo Entries, and 8 Platform Players!');
+        return back()->with('success', 'Successfully seeded 8 fake Players (Solo) and 8 fake Teams for testing!');
     }
 
     public function destroyTeam($id)
@@ -165,11 +156,11 @@ class AdminController extends Controller
 
     public function destroyIndividual($id)
     {
-        IndividualEntry::findOrFail($id)->delete();
+        Player::findOrFail($id)->delete();
         TournamentMatch::where('tournament_type', 'individual')->where(function($q) use ($id) {
             $q->where('participant1_id', $id)->orWhere('participant2_id', $id);
         })->delete();
-        return back()->with('success', 'Solo entry deleted successfully and affected matches removed.');
+        return back()->with('success', 'Solo player deleted successfully and affected matches removed.');
     }
 
     public function destroyPlayer($id)
@@ -199,7 +190,7 @@ class AdminController extends Controller
         if ($type === 'team') {
             $entrants = Team::all();
         } else {
-            $entrants = IndividualEntry::all();
+            $entrants = Player::all(); // Replaced IndividualEntry with Player
         }
 
         if ($entrants->count() < 2) {
@@ -346,4 +337,201 @@ class AdminController extends Controller
 
         return back()->with('success', "Tournament data for $type has been archived and reset.");
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // FINE-GRAINED MATCH EDITING
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Return a single match + all available participants so the Vue modal can prefill.
+     */
+    public function editMatch($id)
+    {
+        $match = TournamentMatch::findOrFail($id);
+
+        if ($match->tournament_type === 'team') {
+            $participants = Team::select('id', 'name as label')->get();
+        } else {
+            $participants = Player::select('id', 'nickname as label')->get();
+        }
+
+        return response()->json([
+            'match'        => $match,
+            'participants' => $participants,
+        ]);
+    }
+
+    /**
+     * Swap participant1 / participant2 in a match.
+     * Clears the result and cascade-clears all downstream rounds.
+     */
+    public function updateMatchParticipants(Request $request, $id)
+    {
+        $request->validate([
+            'participant1_id' => 'nullable|integer',
+            'participant2_id' => 'nullable|integer',
+        ]);
+
+        $match = TournamentMatch::findOrFail($id);
+
+        // Cascade-clear before saving so downstream is consistent
+        $clearedCount = TournamentMatch::cascadeClearDownstream($match);
+
+        $match->update([
+            'participant1_id' => $request->participant1_id,
+            'participant2_id' => $request->participant2_id,
+            'winner_id'       => null,
+            'p1_claimed_win'  => false,
+            'p2_claimed_win'  => false,
+            'is_conflict'     => false,
+            'status'          => 'pending',
+            'notes'           => $request->notes,
+        ]);
+
+        $msg = 'Match participants updated.';
+        if ($clearedCount > 0) {
+            $msg .= " $clearedCount downstream match(es) were also cleared.";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Admin overrides the winner of any match (regardless of current status).
+     * Re-runs autoAdvance to populate the next round.
+     */
+    public function overrideWinner(Request $request, $id)
+    {
+        $request->validate([
+            'winner_id' => 'required|integer',
+        ]);
+
+        $match = TournamentMatch::findOrFail($id);
+
+        $match->update([
+            'winner_id' => $request->winner_id,
+            'status'    => 'finalized',
+            'notes'     => $request->notes,
+        ]);
+
+        TournamentMatch::autoAdvance($match);
+
+        return back()->with('success', 'Winner overridden successfully and bracket updated.');
+    }
+
+    /**
+     * Reverse a match result — clears winner, claims, conflict flag, sets pending.
+     * Cascade-clears all downstream slots and reports how many were affected.
+     */
+    public function reverseMatchResult($id)
+    {
+        $match = TournamentMatch::findOrFail($id);
+
+        $clearedCount = TournamentMatch::cascadeClearDownstream($match);
+
+        $match->update([
+            'winner_id'      => null,
+            'p1_claimed_win' => false,
+            'p2_claimed_win' => false,
+            'is_conflict'    => false,
+            'status'         => 'pending',
+        ]);
+
+        $msg = 'Match result reversed.';
+        if ($clearedCount > 0) {
+            $msg .= " $clearedCount downstream match(es) were also cleared.";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BRACKET DELETE → BACKUP
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Snapshot the entire bracket, delete all its matches, unpublish.
+     */
+    public function deleteBracket(Request $request, $type)
+    {
+        if (!in_array($type, ['team', 'individual'])) {
+            return back()->with('error', 'Invalid tournament type.');
+        }
+
+        $matchCount = TournamentMatch::where('tournament_type', $type)->count();
+        if ($matchCount === 0) {
+            return back()->with('error', 'No matches found for this bracket.');
+        }
+
+        $label = ucfirst($type) . ' Bracket – deleted ' . now()->format('Y-m-d H:i');
+
+        \App\Models\BracketSnapshot::create([
+            'snapshot_label'  => $label,
+            'tournament_type' => $type,
+            'snapshot_data'   => TournamentMatch::snapshotBracket($type),
+            'deleted_by'      => auth()->id(),
+        ]);
+
+        TournamentMatch::where('tournament_type', $type)->delete();
+        TournamentSetting::set($type . '_published', false);
+
+        \Illuminate\Support\Facades\Cache::forget('tournament_setting_' . $type . '_published');
+
+        return back()->with('success', ucfirst($type) . ' bracket moved to Backup Brackets. Registration is now open.');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // BACKUP BRACKETS (snapshots bin)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * List all snapshots (no blob data — metadata only).
+     */
+    public function listSnapshots()
+    {
+        $snapshots = \App\Models\BracketSnapshot::select('id', 'snapshot_label', 'tournament_type', 'deleted_by', 'created_at')
+            ->latest()
+            ->get()
+            ->map(function ($s) {
+                $s->deleted_by_name = \App\Models\User::find($s->deleted_by)?->name ?? 'Admin';
+                return $s;
+            });
+
+        return Inertia::render('Admin/Brackets/Snapshots', [
+            'snapshots' => $snapshots,
+        ]);
+    }
+
+    /**
+     * Restore a bracket from a snapshot — re-inserts all match rows, re-publishes.
+     */
+    public function restoreSnapshot($id)
+    {
+        $snapshot = \App\Models\BracketSnapshot::findOrFail($id);
+        $type     = $snapshot->tournament_type;
+
+        // Clear any existing matches for this type first
+        TournamentMatch::where('tournament_type', $type)->delete();
+
+        foreach ($snapshot->snapshot_data as $row) {
+            // Don't restore auto-generated columns
+            unset($row['id'], $row['created_at'], $row['updated_at']);
+            TournamentMatch::create($row);
+        }
+
+        TournamentSetting::set($type . '_published', true);
+        \Illuminate\Support\Facades\Cache::forget('tournament_setting_' . $type . '_published');
+
+        return back()->with('success', ucfirst($type) . ' bracket restored and re-published successfully!');
+    }
+
+    /**
+     * Permanently delete a snapshot — no recovery after this.
+     */
+    public function permanentlyDeleteSnapshot($id)
+    {
+        \App\Models\BracketSnapshot::findOrFail($id)->delete();
+        return back()->with('success', 'Snapshot permanently deleted.');
+    }
 }
+

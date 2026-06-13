@@ -31,6 +31,8 @@ class RegistrationController extends Controller
 
         Player::create($validated);
 
+        $this->markTeammateRequestsAsRegistered([$validated['email']]);
+
         return redirect()->route('signup.success')->with('success', 'Player registered successfully!');
     }
 
@@ -73,11 +75,27 @@ class RegistrationController extends Controller
             'captain_nickname' => 'required|string|max:255',
             'co_captain_nickname' => 'nullable|string|max:255',
             'accepted_terms' => 'accepted',
+            'members' => 'required|array|min:3|max:5',
+            'members.*.name' => 'required|string|max:255',
+            'members.*.email' => 'required|email|max:255|distinct',
         ], [
-            'accepted_terms.accepted' => 'You must agree to the Terms & Conditions and Official Rules.'
+            'accepted_terms.accepted' => 'You must agree to the Terms & Conditions and Official Rules.',
+            'members.required' => 'You must add at least 3 team members.',
+            'members.min' => 'A team requires at least 3 members.',
+            'members.max' => 'A team can have at most 5 members.',
+            'members.*.name.required' => 'Each team member must have a name.',
+            'members.*.email.required' => 'Each team member must have an email.',
+            'members.*.email.email' => 'Each team member must have a valid email address.',
+            'members.*.email.distinct' => 'Each team member must have a unique email address.',
         ]);
 
         Team::create($validated);
+
+        $emails = [$validated['email']];
+        foreach ($validated['members'] as $member) {
+            $emails[] = $member['email'];
+        }
+        $this->markTeammateRequestsAsRegistered($emails);
 
         return redirect()->route('signup.success')->with('success', 'Team registered successfully!');
     }
@@ -102,11 +120,20 @@ class RegistrationController extends Controller
 
         IndividualEntry::create($validated);
 
+        $this->markTeammateRequestsAsRegistered([$validated['email']]);
+
         return redirect()->route('signup.success')->with('success', 'Individual entry registered successfully!');
     }
 
     public function success()
     {
         return Inertia::render('Public/RegistrationSuccess');
+    }
+
+    private function markTeammateRequestsAsRegistered(array $emails)
+    {
+        \App\Models\TeammateRequest::whereIn('email', $emails)
+            ->where('status', 'active')
+            ->update(['status' => 'registered']);
     }
 }

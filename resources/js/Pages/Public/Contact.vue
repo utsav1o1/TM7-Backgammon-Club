@@ -49,7 +49,7 @@ const submitContact = () => {
               </div>
               <div>
                 <h3 class="font-bold text-white">Email Us</h3>
-                <p class="text-gray-400">admin@thegammonlengends.com</p>
+                <p class="text-gray-400">admin@the-magnificent7.com</p>
               </div>
             </div>
 

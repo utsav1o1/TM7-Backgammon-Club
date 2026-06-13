@@ -50,7 +50,7 @@ const submitRegistration = (values, { resetForm }) => {
 </script>
 
 <template>
-  <Head title="Player Sign Up | TM7 Club" />
+  <Head title="Player Sign Up | Galaxygammon Club" />
 
   <PublicLayout>
     <div class="max-w-3xl mx-auto px-6 py-12 lg:py-24">
@@ -75,7 +75,7 @@ const submitRegistration = (values, { resetForm }) => {
 
         <div class="mb-10 text-center relative z-10">
           <h2 class="text-3xl font-serif font-bold text-white mb-3 tracking-wide">Player Registration</h2>
-          <p class="text-gray-400 mb-4">Join the TM7 platform to participate in global backgammon events.</p>
+          <p class="text-gray-400 mb-4">Join the Galaxygammon platform to participate in global backgammon events.</p>
           <Link :href="route('rules.individual')" class="inline-flex items-center text-sm font-semibold text-tm7-gold hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 mr-1">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />

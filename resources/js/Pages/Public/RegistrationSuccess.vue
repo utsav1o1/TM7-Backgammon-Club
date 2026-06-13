@@ -4,7 +4,7 @@ import PublicLayout from '@/Layouts/PublicLayout.vue';
 </script>
 
 <template>
-  <Head title="Registration Successful | TM7 Club" />
+  <Head title="Registration Successful | Galaxygammon Club" />
 
   <PublicLayout>
     <div class="max-w-2xl mx-auto px-6 py-16 lg:py-32">
@@ -22,7 +22,7 @@ import PublicLayout from '@/Layouts/PublicLayout.vue';
         <h2 class="relative z-10 text-4xl font-serif font-black text-white mb-4 tracking-tight">Registration Successful!</h2>
         
         <p class="relative z-10 text-gray-300 mb-2 text-lg">
-            Thank you for registering with TM7 Backgammon Club.
+            Thank you for registering with Galaxygammon.
         </p>
         <p class="relative z-10 text-gray-400 mb-10">
             Your entry has been securely received and recorded. You will be matched up in the brackets shortly. Good luck and play well!

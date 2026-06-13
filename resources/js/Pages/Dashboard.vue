@@ -42,6 +42,15 @@ const resetTournament = (type) => {
     }
 };
 
+const seedForm = useForm({});
+const seedFakeData = () => {
+    if (confirm('Generate 8 fake teams and 8 fake players for testing?')) {
+        seedForm.post(route('admin.seed.fake'), {
+            preserveScroll: true
+        });
+    }
+};
+
 </script>
 
 <template>
@@ -135,7 +144,13 @@ const resetTournament = (type) => {
                         <span class="text-[10px] text-red-400 leading-tight mt-1">Archiving winners & wiping individual data.</span>
                     </button>
                     
-                    <div class="pt-2">
+                    <div class="pt-2 space-y-2">
+                        <button 
+                            @click="seedFakeData"
+                            class="w-full py-2 border-2 border-dashed border-indigo-200 text-indigo-500 rounded-xl hover:bg-indigo-50 hover:border-indigo-300 transition-all text-xs font-bold uppercase tracking-widest"
+                        >
+                            Seed Fake Test Data
+                        </button>
                         <button 
                             @click="wipeAllData"
                             class="w-full py-2 border-2 border-dashed border-red-200 text-red-400 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-xs font-bold uppercase tracking-widest"

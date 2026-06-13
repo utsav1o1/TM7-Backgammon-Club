@@ -4,13 +4,13 @@ import PublicLayout from '@/Layouts/PublicLayout.vue';
 </script>
 
 <template>
-    <Head title="Welcome | TM7 Backgammon Club" />
+    <Head title="Welcome | Galaxygammon Backgammon Club" />
 
     <PublicLayout>
         <!-- Full Page Banner Background with Dark Overlay -->
         <div class="fixed inset-0 -z-20 w-full h-full">
             <!-- The actual background image -->
-            <img src="/images/banner.webp" alt="Background Banner" class="w-full h-full object-cover" @error="$event.target.src='/images/bnner.jpeg'; $event.target.onerror=null;" />
+            <img src="/images/main_banner.webp" alt="Background Banner" class="w-full h-full object-cover" @error="$event.target.src='/images/bnner.jpeg'; $event.target.onerror=null;" />
             <!-- The dark overlay (lightened from /80 to /60) -->
             <div class="absolute inset-0 bg-tm7-darker/60"></div>
         </div>
@@ -29,12 +29,13 @@ import PublicLayout from '@/Layouts/PublicLayout.vue';
             
 
                 <h1 class="text-4xl font-serif tracking-tight text-white sm:text-6xl uppercase tracking-widest drop-shadow-lg">
-                    Gammon Legends
+                   
+                    <span class="text-tm7-gold"></span>
                 </h1>
                 
                 <!-- Motto Text Fallback if banner image is missing or just additional styling -->
                 <p class="mt-6 text-lg tracking-widest text-tm7-gold max-w-2xl mx-auto font-light uppercase">
-                    Backgammon Club
+                   
                 </p>
 
             </div>

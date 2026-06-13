@@ -2,8 +2,20 @@
 
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::get('/clear-cache', function () {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    return 'Config and Cache cleared successfully!';
+})->name('clear-cache');
+
+Route::get('/run-migrate', function () {
+    Artisan::call('migrate');
+    return 'Migration completed successfully!';
+})->name('run-migrate');
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -31,6 +43,9 @@ Route::post('/signup/team', [\App\Http\Controllers\RegistrationController::class
 
 Route::get('/signup/individual', [\App\Http\Controllers\RegistrationController::class, 'createIndividual'])->name('signup.individual');
 Route::post('/signup/individual', [\App\Http\Controllers\RegistrationController::class, 'storeIndividual']);
+
+Route::get('/find-teammate', [\App\Http\Controllers\TeammateRequestController::class, 'index'])->name('find-teammate.index');
+Route::post('/find-teammate', [\App\Http\Controllers\TeammateRequestController::class, 'store'])->name('find-teammate.store');
 
 Route::get('/teams', [\App\Http\Controllers\TournamentController::class, 'teams'])->name('teams.index');
 Route::get('/players', [\App\Http\Controllers\TournamentController::class, 'players'])->name('players.index');
@@ -64,6 +79,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin Actions
     Route::delete('/admin/truncate', [\App\Http\Controllers\AdminController::class, 'truncateAll'])->name('admin.truncate');
+    Route::post('/admin/seed-fake', [\App\Http\Controllers\AdminController::class, 'seedFakeData'])->name('admin.seed.fake');
+    Route::post('/admin/seed-bracket', [\App\Http\Controllers\AdminController::class, 'seedBracket'])->name('admin.seed');
     
     // Admin Destroys
     Route::delete('/admin/teams/{id}', [\App\Http\Controllers\AdminController::class, 'destroyTeam'])->name('admin.destroy.team');
@@ -79,6 +96,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/admin/reset-tournament', [\App\Http\Controllers\AdminController::class, 'resetTournament'])->name('admin.reset');
     Route::post('/admin/settings/cc-email', [\App\Http\Controllers\AdminController::class, 'updateCcEmail'])->name('admin.cc_email.update');
     Route::post('/admin/settings/rules', [\App\Http\Controllers\AdminController::class, 'updateRules'])->name('admin.rules.update');
+
+    // Fine-grained match editing (New)
+    Route::get('/admin/matches/{id}/edit',           [\App\Http\Controllers\AdminController::class, 'editMatch'])->name('admin.match.edit');
+    Route::patch('/admin/matches/{id}/participants', [\App\Http\Controllers\AdminController::class, 'updateMatchParticipants'])->name('admin.match.swap');
+    Route::patch('/admin/matches/{id}/winner',       [\App\Http\Controllers\AdminController::class, 'overrideWinner'])->name('admin.match.override');
+    Route::patch('/admin/matches/{id}/reverse',      [\App\Http\Controllers\AdminController::class, 'reverseMatchResult'])->name('admin.match.reverse');
+
+    // Bracket-level delete with backup (New)
+    Route::delete('/admin/brackets/{type}',          [\App\Http\Controllers\AdminController::class, 'deleteBracket'])->name('admin.bracket.delete');
+
+    // Backup Brackets bin (New)
+    Route::get('/admin/brackets/snapshots',                          [\App\Http\Controllers\AdminController::class, 'listSnapshots'])->name('admin.snapshots.index');
+    Route::post('/admin/brackets/snapshots/{id}/restore',            [\App\Http\Controllers\AdminController::class, 'restoreSnapshot'])->name('admin.snapshots.restore');
+    Route::delete('/admin/brackets/snapshots/{id}',                  [\App\Http\Controllers\AdminController::class, 'permanentlyDeleteSnapshot'])->name('admin.snapshots.destroy');
 });
 
 Route::middleware('auth')->group(function () {

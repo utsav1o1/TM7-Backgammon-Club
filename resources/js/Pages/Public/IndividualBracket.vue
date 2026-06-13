@@ -64,7 +64,7 @@ const tournamentData = computed(() => {
         if (roundsList[rIndex] && roundsList[rIndex].games[mIndex]) {
             roundsList[rIndex].games[mIndex] = {
                 player1: { 
-                    name: match.p1 ? (match.p1.player_name || match.p1.name) : 'BYE', 
+                    name: match.p1 ? (match.p1.nickname || match.p1.name) : 'BYE', 
                     email: match.p1 ? match.p1.email : null,
                     id: match.participant1_id,
                     winner: match.winner_id && match.winner_id == match.participant1_id,
@@ -74,7 +74,7 @@ const tournamentData = computed(() => {
                     is_conflict: match.is_conflict
                 },
                 player2: { 
-                    name: match.p2 ? (match.p2.player_name || match.p2.name) : 'BYE', 
+                    name: match.p2 ? (match.p2.nickname || match.p2.name) : 'BYE', 
                     email: match.p2 ? match.p2.email : null,
                     id: match.participant2_id,
                     winner: match.winner_id && match.winner_id == match.participant2_id,
